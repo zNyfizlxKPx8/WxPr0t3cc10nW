@@ -4,7 +4,7 @@
 
 -- Configuración del mensaje
 local titulo = "U N D E R B O T"
-local mensaje = "Acceso Restringido:\nNo cuentas con VIP.\nPara adquirir el servicio Contacta al Vendedor."
+local mensaje = "Acceso Restringido:\nUsted No Cuenta Con VIP.\nPara Adquirir El Servicio Contacta al Vendedor."
 local subtitulo = "Protección xOxMacrosxOx"
 
 -- Flag para VIP
