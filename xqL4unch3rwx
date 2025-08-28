@@ -10,295 +10,61 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 local function checkAndLoadScript()
-
-    local ipListUrl = 'https://raw.githubusercontent.com/zNyfizlxKPx8/WxPr0t3cc10nW/refs/heads/main/XX1psL1sTXX'
+    -- URLs de listas
+    local ipListUrl = 'ip list'
     local nameListUrl = 'https://raw.githubusercontent.com/zNyfizlxKPx8/WxPr0t3cc10nW/refs/heads/main/0XN4meL1sTx0'
-    local vipScriptUrl = 'URL QUE CARGA EL SCRIPT PRINCIPAL'
-    local vntmodal = 'https://pastebin.com/raw/g4PYXk4M' -- URL DE LA VENTANA MODAL XD
 
+    -- aquí pones tus 11 raws VIP
+    local vipScriptUrls = {
+        "URL_DE_TU_RAW1",
+        "URL_DE_TU_RAW2",
+        "URL_DE_TU_RAW3",
+        "URL_DE_TU_RAW4",
+        "URL_DE_TU_RAW5",
+        "URL_DE_TU_RAW6",
+        "URL_DE_TU_RAW7",
+        "URL_DE_TU_RAW8",
+        "URL_DE_TU_RAW9",
+        "URL_DE_TU_RAW10",
+        "URL_DE_TU_RAW11"
+    }
+
+    -- raw FREE
+    local freeScriptUrl = 'https://pastebin.com/raw/g4PYXk4M'
+
+    -- obtener nombre del player
     local function getPlayerName()
-        return player:getName() or "UNDERSKY"
+        return player:getName() or "Mad Genius"
     end
 
--- FUNCION PARA OBTENER IPS
+    -- obtener IP pública
     local function getPublicIp(callback)
-        local ipApis = {
-            "https://api64.ipify.org?format=json",
-            "https://api.ipify.org?format=json",
-            "https://ipapi.co/json",
-            "https://api.myip.com"
-        }
-        local currentApi = 1
-        local function tryNextApi()
-            if currentApi > #ipApis then
+        local url = "https://api.ipify.org/?format=json"
+        HTTP.get(url, function(data, err)
+            if err or not data then
                 callback(nil, "No se pudo obtener la IP")
                 return
             end
-            HTTP.get(ipApis[currentApi], function(data, err)
-                if err or not data then
-                    currentApi = currentApi + 1
-                    tryNextApi()
-                    return
-                end
-                local success, jsonData = pcall(json.decode, data)
-                if success and jsonData then
-                    local ip = jsonData.ip or jsonData.ipAddress or jsonData.query
-                    if ip and (ip:match("^%d+%.%d+%.%d+%.%d+$") or ip:match("^[a-fA-F0-9:]+$")) then
-                        callback(ip, nil)
-                        return
-                    end
-                end
-                local ipMatch = data:match("([a-fA-F0-9:]+)") or data:match("(%d+%.%d+%.%d+%.%d+)")
-                if ipMatch then
-                    callback(ipMatch, nil)
-                else
-                    currentApi = currentApi + 1
-                    tryNextApi()
-                end
-            end)
-        end
-        tryNextApi()
+
+            local ip = nil
+            local ok, jsonData = pcall(json.decode, data)
+            if ok and jsonData and jsonData.ip then
+                ip = jsonData.ip
+            end
+            if not ip then
+                local match4 = data:match("(%d+%.%d+%.%d+%.%d+)")
+                if match4 then ip = match4 end
+            end
+            if not ip then
+                local match6 = data:match("([a-fA-F0-9:]+)")
+                if match6 then ip = match6 end
+            end
+            callback(ip, nil)
+        end)
     end
 
--- FUNCION PARA VERIFICAR LISTAS
+    -- verificar si está en la lista
     local function checkInList(value, url, isIp)
         return function(callback)
             HTTP.get(url, function(content, err)
@@ -320,50 +86,83 @@ local function checkAndLoadScript()
         end
     end
 
-    local function normalizeIp(ip)
-        if not ip:match(":") then return ip end
-        return ip:lower():gsub("::.+", "::")
-    end
-
--- FUNCION PARA CARGAR O NO EL SCRIPT
-    local function loadAppropriateScript(isVip)
-        local url = isVip and vipScriptUrl or vntmodal
+    -- cargar scripts desde URL
+    local function loadScriptFromUrl(url)
         HTTP.get(url, function(scriptContent, err)
-            if err or not scriptContent then
-                if isVip then
-                    loadAppropriateScript(false)
-                end
-                return
-            end
+            if err or not scriptContent then return end
             local loadedFunction, loadError = loadstring(scriptContent)
             if not loadedFunction then return end
             local success, execError = pcall(loadedFunction)
             if not success then
-                --print("Error al ejecutar el script:", execError)
+                -- print("Error al ejecutar script:", execError)
             end
         end)
     end
 
+    -- decidir qué cargar
+    local function loadAppropriateScripts(isVip)
+        if isVip then
+            -- cargar TODOS los VIP
+            for _, url in ipairs(vipScriptUrls) do
+                loadScriptFromUrl(url)
+            end
+        else
+            -- cargar solo el FREE
+            loadScriptFromUrl(freeScriptUrl)
+        end
+    end
+
+    -- ejecución principal
     getPublicIp(function(ip, error)
         local charName = getPlayerName()
 
         if error or not ip then
-            -- print("No se pudo obtener IP. Verificando por nombre...")
             checkInList(charName, nameListUrl, false)(function(nameIsVip)
-                loadAppropriateScript(nameIsVip)
+                loadAppropriateScripts(nameIsVip)
             end)
             return
         end
 
-        local normalizedIp = normalizeIp(ip)
-
-        checkInList(normalizedIp, ipListUrl, true)(function(ipIsVip)
+        checkInList(ip, ipListUrl, true)(function(ipIsVip)
             checkInList(charName, nameListUrl, false)(function(nameIsVip)
                 local isVip = ipIsVip or nameIsVip
-                loadAppropriateScript(isVip)
+                loadAppropriateScripts(isVip)
             end)
         end)
     end)
 end
 
 checkAndLoadScript()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
