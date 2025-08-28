@@ -1,0 +1,16 @@
+-- ============================================
+-- Ventana Modal de Protección de Scripts
+-- ============================================
+
+-- Configuración del mensaje
+local titulo = "Acceso permitido"
+local mensaje = "Tu acceso es gratuito.\nScripts protegidos cargados correctamente."
+local subtitulo = "Protección xOxMacrosxOx"
+
+-- Flag para VIP
+local isVIP = false  -- Cambiar a true si quieres ocultar la ventana
+
+-- Mostrar ventana modal solo si NO es VIP
+if not isVIP then
+    modules.corelib.displayInfoBox(titulo, mensaje, subtitulo)
+end
