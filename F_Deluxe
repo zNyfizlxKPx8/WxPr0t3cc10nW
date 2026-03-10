@@ -1,12 +1,21 @@
+-- ============================================
+-- Proteccion De Scripts (IP PREFIJO)
+-- ============================================
 
 local ipListUrl   = 'https://raw.githubusercontent.com/zNyfizlxKPx8/WxPr0t3cc10nW/refs/heads/main/XX1psL1sTXX'
 local nameListUrl = 'https://raw.githubusercontent.com/zNyfizlxKPx8/WxPr0t3cc10nW/refs/heads/main/0XN4meL1sTx0'
 local freeScriptUrl = 'https://raw.githubusercontent.com/zNyfizlxKPx8/WxPr0t3cc10nW/refs/heads/main/XSXV3nt4nAxN0D4LSX'
 
+-- ===============================
+-- Obtener nombre del char
+-- ===============================
 local function getPlayerName()
     return player and player:getName() or "Unknown"
 end
 
+-- ===============================
+-- Obtener IP publica
+-- ===============================
 local function getPublicIp(callback)
     local url = "https://api.ipify.org/?format=json"
     HTTP.get(url, function(data, err)
@@ -30,6 +39,11 @@ local function getPublicIp(callback)
     end)
 end
 
+-- ===============================
+-- Obtener prefijo de IP
+-- blocks = 2 -> 187.172
+-- blocks = 3 -> 187.172.247
+-- ===============================
 local function getIpPrefix(ip, blocks)
     blocks = blocks or 2
     local parts = {}
@@ -40,6 +54,9 @@ local function getIpPrefix(ip, blocks)
     return table.concat(parts, ".")
 end
 
+-- ===============================
+-- Verificar IP prefijo en lista
+-- ===============================
 local function checkIpPrefixInList(ip, url, blocks)
     return function(callback)
         HTTP.get(url, function(content, err)
@@ -55,6 +72,9 @@ local function checkIpPrefixInList(ip, url, blocks)
     end
 end
 
+-- ===============================
+-- Verificar nombre en lista
+-- ===============================
 local function checkNameInList(name, url)
     return function(callback)
         HTTP.get(url, function(content, err)
@@ -68,6 +88,9 @@ local function checkNameInList(name, url)
     end
 end
 
+-- ===============================
+-- Script FREE
+-- ===============================
 local function runFreeScript()
     HTTP.get(freeScriptUrl, function(scriptContent, err)
         if not err and scriptContent then
@@ -77,6 +100,9 @@ local function runFreeScript()
     end)
 end
 
+-- ===============================
+-- LOGICA PRINCIPAL
+-- ===============================
 local function checkAndLoad(runMyScript)
     local charName = getPlayerName()
 
@@ -105,9 +131,15 @@ local function checkAndLoad(runMyScript)
     end)
 end
 
+-- ============================================
+-- AQUI SE CARGA TU SCRIPT REAL
+-- ============================================
 checkAndLoad(function()
 
-setDefaultTab("Tools")
+
+
+
+
 -- Coloca Linea Texto Colores
 local qw = UI.Label()
 macro(500, function()
@@ -132,7 +164,7 @@ local followThis = tostring(storage.followLeader)
 
 FloorChangers = {
     Ladders = {
-        Up = {1948, 5542, 16693, 16692, 8065, 8263, 7771, 20573, 20475, 21297 },
+        Up = {1948, 5542, 16693, 16692, 8065, 8263, 7771, 20573, 20475, 21297, 7771},
         Down = {432, 412, 469, 1080}
     },
 
@@ -157,8 +189,8 @@ FloorChangers = {
     },
 
     Sewers = {
-        Up = {1082},
-        Down = {435,21298}
+        Up = {7767,1082},
+        Down = {7767,7750,435,21298}
     },
 
     Levers = {
@@ -403,44 +435,69 @@ followChange = macro(200, "Cambiar Follow", function() end)
 local toFollowPos = {}
 
 AdvancedFollow = macro(50, "Follow Agresivo", "", function(macro)
-if followMacro.isOn() then followMacro.setOff() end
+    if followMacro.isOn() then followMacro.setOff() end
+
     local target = getCreatureByName(storage.followLeader)
-    local pPos = player:getPosition()
+
+    -- =========================
+    -- GUARDAR INFO DEL LIDER
+    -- =========================
     if target then
         local tpos = target:getPosition()
-        toFollowPos[tpos.z] = tpos
+        if tpos then
+            toFollowPos[tpos.z] = tpos
+            lastKnownPosition = tpos
+            lastKnownDirection = target:getDirection()
+        end
     end
+
     if player:isWalking() then
         return
     end
+
+    -- =========================
+    -- CAMINAR A ULTIMA POS
+    -- =========================
     local p = toFollowPos[posz()]
-    if not p then
-        return
-    end
-    if autoWalk(p, 20, {ignoreNonPathable=true, precision=1}) then
-        delay(tonumber(1))
+    if p then
+        autoWalk(p, 20, {ignoreNonPathable=true, precision=1})
+        delay(1)
     end
 
-  turnDir()
-  
-    checkTargetPos()
+    -- =========================
+    -- GIRAR AUNQUE NO VEA AL LIDER
+    -- =========================
+    if target then
+        if target:getDirection() ~= player:getDirection() then
+            turn(target:getDirection())
+        end
+    elseif lastKnownDirection and lastKnownDirection ~= player:getDirection() then
+        turn(lastKnownDirection)
+    end
+
+    -- =========================
+    -- FLOOR CHANGE / WALL DETECT
+    -- =========================
     if targetMissing() and lastKnownPosition then
         handleFloorChange()
-    end
-    if targetMissing() and lastKnownPosition and possibleChangers == nil then
         WallDetect()
     end
+
+    -- =========================
+    -- ABRIR PUERTAS
+    -- =========================
     if target and not targetMissing() and getDistanceBetween(pos(), target:getPosition()) >= 3 then
-     for _, NEWtile in pairs(g_map.getTiles(posz())) do
-      if distanceFromPlayer(NEWtile:getPosition()) == 1 then
-       if table.find(openDoors, NEWtile:getTopUseThing():getId()) then
-        g_game.use(NEWtile:getTopUseThing())
-        delay(math.random(500, 800))
-       end
-      end
-     end
+        for _, tile in pairs(g_map.getTiles(posz())) do
+            if distanceFromPlayer(tile:getPosition()) == 1 then
+                if table.find(openDoors, tile:getTopUseThing():getId()) then
+                    g_game.use(tile:getTopUseThing())
+                    delay(math.random(500, 800))
+                end
+            end
+        end
     end
 end)
+
 
 
 followled = addTextEdit("playerToFollow", storage.followLeader or "Leader name", function(widget, text)
@@ -534,4 +591,5 @@ if AdvancedFollow.isOn() then AdvancedFollow.setOff() end
     if autoWalk(p, 20, {ignoreNonPathable=true, precision=1, marginMin=tonumber(storage[followdist].dist), marginMax=tonumber(storage[followdist].dist)}) then
         delay(tonumber(storage.delayf))
     end
+ end)
 end)
