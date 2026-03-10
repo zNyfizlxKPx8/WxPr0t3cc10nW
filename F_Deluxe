@@ -1,3 +1,4 @@
+setDefaultTab("Tools")
 -- ============================================
 -- Proteccion De Scripts (IP PREFIJO)
 -- ============================================
@@ -135,8 +136,6 @@ end
 -- AQUI SE CARGA TU SCRIPT REAL
 -- ============================================
 checkAndLoad(function()
-
-
 
 
 
