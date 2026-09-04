@@ -1346,4 +1346,5 @@ onTalk(function(name, level, mode, text)
             respondToLeader("Comando goto recibido: " .. text)
         end
     end
+ end)
 end)
