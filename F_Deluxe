@@ -139,456 +139,1211 @@ checkAndLoad(function()
 
 
 
--- Coloca Linea Texto Colores
-local qw = UI.Label()
-macro(500, function()
-qw:setText("Follow Deluxe")
-qw:setColor("pink")
-qw:setFont("verdana-11px-rounded")
-schedule(600, function()
-  qw:setColor("red")
+setDefaultTab("NAVI")
+
+-- "Protecciones de seguridad para la ofuscacion
+local function safeGetLeader()
+  if storage and storage.attackLeader then
+    return storage.attackLeader
+  elseif followts and followts.leader then
+    return followts.leader
+  else
+    return ""
+  end
+end
+
+local function safeMacroOff(macroName)
+  -- Tenta desativar o macro diretamente
+  local success, result = pcall(function()
+    if macroName == "targetAtkMacro" and targetAtkMacro then
+      targetAtkMacro.setOff()
+      return true
+    elseif macroName == "lyzeMacro" and lyzeMacro then
+      lyzeMacro.setOff()
+      return true
+    elseif macroName == "areaAtkMacro" and areaAtkMacro then
+      areaAtkMacro.setOff()
+      return true
+    elseif macroName == "CaveBot" and CaveBot then
+      CaveBot.setOff()
+      return true
+    elseif macroName == "TargetBot" and TargetBot then
+      TargetBot.setOff()
+      return true
+    elseif macroName == "ultimateFollow" and ultimateFollow then
+      ultimateFollow.setOff()
+      return true
+    end
+    return false
+  end)
+  return success and result or false
+end
+
+local function safeRespondToLeader(message)
+  local leaderName = safeGetLeader()
+  if leaderName and leaderName ~= "" then
+    if type(talkPrivate) == "function" then
+      talkPrivate(leaderName, message)
+    end
+  end
+end
+
+-- Funcion para responder por PM al líder (version segura)
+local function respondToLeader(message)
+  safeRespondToLeader(message)
+end
+
+
+local label = UI.Label(">> Follow Mc System <<")
+label:setColor("#a73ec1") -- Color base
+label:setFont("verdana-11px-rounded")
+
+local glowPosition = 1
+local glowDirection = 1
+
+macro(50, function()
+    local text = ">> Follow Mc System <<"
+    local numChars = #text
+    local glowRange = math.max(1, math.floor(numChars / 10)) 
+    local coloredText = {}
+
+    for i = 1, numChars do
+        local char = text:sub(i, i)
+        local color = "#a73ec1" -- Color base
+        if math.abs(i - glowPosition) <= glowRange then
+            color = "#ffffff" -- Color de brillo
+        end
+        table.insert(coloredText, char)
+        table.insert(coloredText, color)
+    end
+
+    glowPosition = glowPosition + glowDirection
+    if glowPosition > numChars then
+        glowPosition = numChars - 1
+        glowDirection = -1
+    elseif glowPosition < 1 then
+        glowPosition = 2
+        glowDirection = 1
+    end
+
+    label:setColoredText(coloredText)
 end)
-schedule(800, function()
-  qw:setColor("yellow")
-end)
-schedule(10, function()
-  qw:setColor("orange")
-end)
-schedule(1400, function()
-  qw:setColor("#00FFFF")
-end)
-end)
 
-local followThis = tostring(storage.followLeader)
+-- =========================
 
-FloorChangers = {
-    Ladders = {
-        Up = {1948, 5542, 16693, 16692, 8065, 8263, 7771, 20573, 20475, 21297, 7771},
-        Down = {432, 412, 469, 1080}
-    },
-
-    Holes = { -- teleports
-        Up = {},
-        Down = {293, 35500, 294, 595, 1949, 4728, 385, 9853, 37000, 37001, 35499, 35497, 29979, 25047, 25048, 25049, 25050, 
-                25051, 25052, 25053, 25054, 25055, 25056, 25057, 25058, 21046, 21048 }
-    },
-
-    RopeSpots = { -- buracos pra usar corda
-        Up = {386, 12202, 21965, 21966},
-        Down = {}
-    },
-
-    Stairs = {
-        Up = {16690, 1958, 7548, 7544, 1952, 1950, 1947, 7542, 855, 856, 1978, 1977, 6911, 6915, 1954, 5259, 20492, 1956, 775,
-              5257, 5258, 22566, 22747, 30757, 20225, 17395, 1964, 1966, 20255, 29113, 28357, 30912, 30906, 30908, 30914, 
-              30916, 30904, 30918, 20750, 20750, 20491, 20474, 20496 },
-
-        Down = {482, 414, 437, 7731, 413, 434, 859, 438, 6127, 566, 7476, 4826, 484, 433, 369, 20259, 19960, 411,
-                8690, 4825, 6130, 601, 1067, 567, 7768, 1067, 411, 600 }
-    },
-
-    Sewers = {
-        Up = {7767,1082},
-        Down = {7767,7750,435,21298}
-    },
-
-    Levers = {
-        Up = {2772, 2773, 1759, 1764, 21051, 7131, 7132, 39756},
-        Down = {2772, 2773, 1759, 1764, 21051, 7131, 7132, 39756}
-    },
+local config = {
+  hppercent = 80,
+  spell = 'exura sio "',
+  delay = 1000
 }
 
-local openDoors = { 34847, 1764, 21051, 30823, 6264, 5282, 20453, 11705, 6256, 2772, 27260, 2773, 1632, 6252, 5007, 1629, 5107, 5281, 1968, 31116, 31120, 30742, 31115, 31118, 20474, 5736, 5733, 31202, 31228, 31199, 31200, 33262, 30824, 5125, 5126, 5116, 8257, 8258, 8255, 8256, 5120, 30777, 30776, 23873, 23877, 5736, 6264, 31262, 31130, 6249, 5122, 30049, 7727, 25803, 16277, 5098, 5104, 5102, 5106, 5109, 5111, 5113, 5118, 5120, 5102, 5100, 1638, 1640, 19250, 3500, 3497, 3498, 3499, 2177, 17709, 1642, 23875, 1644, 5131, 5115, 28546, 6254, 28546, 30364, 30365, 30367, 30368, 30363, 30366, 31139, 31138, 31136, 31137, 4981, 4977, 11714, 7771, 9558, 9559, 20475, 2909, 2907, 8618, 31366, 1646, 1648, 4997, 22506, 8259, 27503, 27505, 27507, 31476, 31477, 31477, 31475, 31474, 8363, 5097, 1644, 7712, 7715, 11237, 11246, 9874, 6260, 33634, 33633, 22632, 22639, 1631, 1628, 20446, 20443, 20444, 2334, 9357, 9355 }
+macro(2000, "SiO VIP", function()
+  for id, data in pairs(g_game.getVips()) do
+      local friendName = data[1]
+      local friend = getCreatureByName(friendName)
+      if friend then
+          local fPos = friend:getPosition()
+          local fTile = g_map.getTile(fPos)
+          local isReachable = fTile and fTile:canShoot()
+          local needHeal = friend:getHealthPercent() <= config.hppercent
+          if isReachable and needHeal then
+              delay(config.delay)
+              say(config.spell..friendName)
+              break
+          end
+      end
+  end
+end)
 
-local target = followThis
-local lastKnownPosition
-local lastKnownDirection
 
-local function goLastKnown()
-    if getDistanceBetween(pos(), {x = lastKnownPosition.x, y = lastKnownPosition.y, z = lastKnownPosition.z}) > 1 then
-        local newTile = g_map.getTile({x = lastKnownPosition.x, y = lastKnownPosition.y, z = lastKnownPosition.z})
-        if newTile then
-            g_game.use(newTile:getTopUseThing())
-            delay(math.random(100, 400))
-        end
+local lastHealTime = 0
+local healCooldown = 2000  -- 2 segundos
+
+macro(2000, "Mas Res 2s", function()
+  if now > lastHealTime + healCooldown then
+    if saySpell("exura gran mas res", 2000) then
+      lastHealTime = now
     end
-end
+  end
+end)
+
+local lastAttackTime = 0
+local attackCooldown = 3000  -- 3 segundos
+
+macro(2000, "Exeta Res 2s", function()
+  if now > lastAttackTime + attackCooldown then
+    if saySpell("exeta res", 2000) then
+      lastAttackTime = now
+    end
+  end
+end)
+
+
+--- Follow
+-- Macro de Follow
+Panels.AttackLeaderTarget(batTab)
+
+
+----Nuevo Follow
+
+
+leaderPositions = {}
+local leaderDirections = {}
+local leader
+local lastLeaderFloor
+local ropeId = 3003
+local standTime = now
+ 
+FloorChangers = {
+  RopeSpots = {
+    Up = {386},
+    Down = {}
+  },
+  
+  Use = {
+  Up = {1948, 5542, 16693, 16692, 1723, 7771},
+    Down = {435,7750}
+  }
+}
 
 local function handleUse(pos)
-    goLastKnown()
-    local lastZ = posz()
-    if posz() == lastZ then
-        local newTile = g_map.getTile({x = pos.x, y = pos.y, z = pos.z})
-        if newTile then
-            g_game.use(newTile:getTopUseThing())
-            delay(math.random(100, 400))
-        end
+  local lastZ = posz()
+  if posz() == lastZ then
+    local newTile = g_map.getTile({x = pos.x, y = pos.y, z = pos.z})
+    if newTile then
+      g_game.use(newTile:getTopUseThing())
     end
-end
-
-local function handleStep(pos)
-    goLastKnown()
-    local lastZ = posz()
-    if posz() == lastZ then
-        autoWalk(pos)
-        delay(math.random(100, 400))
-    end
+  end
 end
 
 local function handleRope(pos)
-    goLastKnown()
-    local lastZ = posz()
-    if posz() == lastZ then
-        local newTile = g_map.getTile({x = pos.x, y = pos.y, z = pos.z})
-        if newTile then
-            useWith(storage.extras.rope, newTile:getTopUseThing())
-            delay(math.random(100, 400))
-        end
+  local lastZ = posz()
+  if posz() == lastZ then
+    local newTile = g_map.getTile({x = pos.x, y = pos.y, z = pos.z})
+    if newTile then
+      useWith(ropeId, newTile:getTopUseThing())
     end
+  end
 end
 
 local floorChangeSelector = {
-    Ladders = {Up = handleUse, Down = handleStep},
-    Holes = {Up = handleStep, Down = handleStep},
-    RopeSpots = {Up = handleRope, Down = handleRope},
-    Stairs = {Up = handleStep, Down = handleStep},
-    Sewers = {Up = handleUse, Down = handleUse},
-    Levers = {Up = handleUse, Down = handleUse},
+  RopeSpots = {Up = handleRope, Down = handleRope},
+  Use = {Up = handleUse, Down = handleUse}
 }
 
-local function checkTargetPos()
-    local c = getCreatureByName(target)
-    if c and c:getPosition().z == posz() then
-        lastKnownPosition = c:getPosition()
-    end
-end
-
 local function distance(pos1, pos2)
-    local pos2 = pos2 or lastKnownPosition or pos()
-    return math.abs(pos1.x - pos2.x) + math.abs(pos1.y - pos2.y)
+  local pos2 = pos2 or player:getPosition()
+  return math.abs(pos1.x - pos2.x) + math.abs(pos1.y - pos2.y)
 end
-
-local function lastTurnDir()
-    local targetZ = getCreatureByName(storage.followLeader)
-    if not targetZ then return end
-
-    local pdir = player:getDirection()
-    local tdir = targetZ:getDirection()
-
-    if tdir ~= pdir then
-        turn(tdir)
-    end
-end
-
-
-local function turnDir()
-    local targetZ = getCreatureByName(storage.followLeader)
-    local pdir = player:getDirection()
-    for _, n in ipairs(getSpectators(true)) do
-        if n:getName() == storage.followLeader then
-            targetZ = n
-        end
-    end
-    if not targetZ then return end
-    local targetDir = targetZ:getDirection()
-    if targetZ and targetZ:getPosition().z == posz() and targetZ:getDirection() ~= player:getDirection() then
-        turn(targetDir)
-    end
-end
-
-
-local function WallDetect()
-    local targetZ = getCreatureByName(storage.followLeader)
-
-    for _, n in ipairs(getSpectators(true)) do
-        if n:getName() == storage.followLeader then
-            targetZ = n
-            break
-        end
-    end
-
-    if not targetZ or not targetZ:getPosition() then
-        return
-    end
-
-    -- Guardar ultima direccion conocida si cambia de piso
-    if targetZ:getPosition().z ~= posz() then
-        lastKnownDirection = targetZ:getDirection()
-    end
-
-    -- Si aun no hay direccion conocida, salir sin romper nada
-    if lastKnownDirection == nil then
-        return
-    end
-
-    -- Girar hacia la ultima direccion
-    turn(lastKnownDirection)
-
-    -- Subir o bajar pisos
-    local diffZ = targetZ:getPosition().z - posz()
-
-    if diffZ >= 1 then
-        say('exani hur "down')
-        delay(math.random(100, 400))
-    elseif diffZ <= -1 then
-        say('exani hur "up')
-        delay(math.random(100, 400))
-    end
-end
-
 
 local function executeClosest(possibilities)
-    local closest
-    local closestDistance = 99999
-    for _, data in ipairs(possibilities) do
-        local dist = distance(data.pos)
-        if dist < closestDistance then
-            closest = data
-            closestDistance = dist
-        end
+  local closest
+  local closestDistance = 99
+  for _, data in ipairs(possibilities) do
+    local dist = distance(data.pos)
+    if dist < closestDistance then
+      closest = data
+      closestDistance = dist
     end
+  end
 
-    if closest then
-        closest.changer(closest.pos)
-    end
+  if closest then
+    closest.changer(closest.pos)
+  return true
+  end
+  
+  return false
 end
 
 local function handleFloorChange()
-    local c = getCreatureByName(target)
-    local range = 2
-    local p = pos()
-    local possibleChangers = {}
-    local checkZ = {}
-    local targetZ = nil
-    for _, n in ipairs(getSpectators(true)) do
-        if n:getName() == target then
-            targetZ = n
+  local range = 1
+  local p = player:getPosition()
+  local possibleChangers = {}
+  for _, dir in ipairs({"Down", "Up"}) do
+    for changer, data in pairs(FloorChangers) do
+      for x = -range, range do
+        for y = -range, range do
+          local tile = g_map.getTile({x = p.x + x, y = p.y + y, z = p.z})
+          if tile and tile:getTopUseThing() then
+            if table.find(data[dir], tile:getTopUseThing():getId()) then
+              table.insert(possibleChangers, {changer = floorChangeSelector[changer][dir], pos = {x = p.x + x, y = p.y + y, z = p.z}})
+      end
+          end
         end
+      end
     end
-    if not targetZ then table.insert(checkZ,"Down")
-    elseif targetZ:getPosition().z == posz() then return true
-    elseif targetZ:getPosition().z - posz() >= 1 then table.insert(checkZ,"Down")
-    elseif targetZ:getPosition().z - posz() <= -1 then table.insert(checkZ,"Up")
-    end
-    for _, dir in ipairs(checkZ) do
-        for changer, data in pairs(FloorChangers) do
-            for x = -range, range do
-                for y = -range, range do
-                    local tile = g_map.getTile({x = p.x + x, y = p.y + y, z = p.z})
-                    if tile then
-                        if table.find(data[dir], tile:getTopUseThing():getId()) then
-                            table.insert(possibleChangers, {changer = floorChangeSelector[changer][dir], pos = {x = p.x + x, y = p.y + y, z = p.z}})
-                        end
-                    end
-                end
-            end
-        end
-    end
-    executeClosest(possibleChangers)
+  end
+  if #possibleChangers > 0 then
+    return executeClosest(possibleChangers)
+  end
+  
+  return false
 end
 
-local function targetMissing()
-    for _, n in ipairs(getSpectators(false)) do
-        if n:getName() == target then
-            return n:getPosition().z ~= posz()
-        end
-    end
-    return true
+local function levitate(dir)
+  turn(dir)
+  schedule(200, function()
+  say('exani hur "down')
+  say('exani hur "up')
+  end)
 end
 
-Autofollow = macro(200, "Follow Inteligente", function()
-    local target = getCreatureByName(storage.followLeader)
+local function matchPos(p1, p2)
+  return (p1.x == p2.x and p1.y == p2.y)
+end
 
-    -- Si el lider no se encuentra, asumir que esta en otro piso
-    if not target then
-        if not AdvancedFollow.isOn() then
-            followMacro.setOff()
-            AdvancedFollow.setOn()
-            print("Cambiando a Follow Agresivo (Lider fuera del rango, asumiendo otro piso)")
-        end
-        return
+local function handleUsing()
+  local usePos = leaderUsePositions[posz()]
+  if usePos then
+    local useTile = g_map.getOrCreateTile(usePos)
+    if useTile then
+      use(useTile:getTopUseThing())
+    end
+  end
+end
+
+local function useRope(pos)
+  if not pos then
+    pos = player:getPosition()
+  end
+  
+  local dirs = {{0, 0}, {-1, 0}, {1, 0}, {0, -1}, {0, 1}, {1, -1}, {1, 1}, {-1, 1}, {-1, -1}}
+  
+  for i = 1, #dirs do
+  local tpos = {x = pos.x+dirs[i][1], y = pos.y+dirs[i][2], z = posz()}
+  local tile = g_map.getTile(tpos)
+  
+  if tile then
+    if tile:getGround() then
+      local ropeSpots = FloorChangers.RopeSpots.Up
+      if table.contains(ropeSpots, tile:getGround():getId()) then
+        local waitTime = getDistanceBetween(player:getPosition(), tpos) * 60
+      handleRope(tpos)
+      delay(waitTime)
+      return true
+    end
+    end
+  end
+  end
+  
+  return false
+end
+
+local function getStandTime()
+  return now - standTime
+end
+
+ultimateFollow = macro(50, "Follow", function()
+  if not leader then
+    local leaderPos = leaderPositions[posz()]
+    if leaderPos and getDistanceBetween(player:getPosition(), leaderPos) > 0 then
+      autoWalk(leaderPos, 70, {ignoreNonPathable=true, precision=0})
+      delay(200)
+      return
     end
 
-    local leaderPos = target:getPosition()
-    local myPos = player:getPosition()
-
-    -- Detectar si estamos en diferente piso
-    if leaderPos.z ~= myPos.z then
-        if not AdvancedFollow.isOn() then
-            followMacro.setOff()
-            AdvancedFollow.setOn()
-            print("Cambiando a Follow Agresivo (Lider en otro piso)")
-        end
-    -- Si estamos en el mismo piso y cerca, cambiar a Follow Distancia
-    elseif getDistanceBetween(myPos, leaderPos) <= tonumber(storage[followdist].dist) then
-        if not followMacro.isOn() then
-            AdvancedFollow.setOff()
-            followMacro.setOn()
-            print("Cambiando a Follow Distancia (Lider en el mismo piso y cerca)")
-        end
-    end
-end)
-
-followChange = macro(200, "Cambiar Follow", function() end)
-
-local toFollowPos = {}
-
-AdvancedFollow = macro(50, "Follow Agresivo", "", function(macro)
-    if followMacro.isOn() then followMacro.setOff() end
-
-    local target = getCreatureByName(storage.followLeader)
-
-    -- =========================
-    -- GUARDAR INFO DEL LIDER
-    -- =========================
-    if target then
-        local tpos = target:getPosition()
-        if tpos then
-            toFollowPos[tpos.z] = tpos
-            lastKnownPosition = tpos
-            lastKnownDirection = target:getDirection()
-        end
+    if handleFloorChange() then
+      return
     end
 
-    if player:isWalking() then
-        return
+    local dir = leaderDirections[posz()]
+    if dir then
+      levitate(dir)
     end
 
-    -- =========================
-    -- CAMINAR A ULTIMA POS
-    -- =========================
-    local p = toFollowPos[posz()]
-    if p then
-        autoWalk(p, 20, {ignoreNonPathable=true, precision=1})
-        delay(1)
+    local levitatePos = listenedLeaderPosDir
+    if levitatePos and matchPos(player:getPosition(), levitatePos) then 
+      levitate(listenedLeaderDir)
+      return
     end
 
-    -- =========================
-    -- GIRAR AUNQUE NO VEA AL LIDER
-    -- =========================
-    if target then
-        if target:getDirection() ~= player:getDirection() then
-            turn(target:getDirection())
-        end
-    elseif lastKnownDirection and lastKnownDirection ~= player:getDirection() then
-        turn(lastKnownDirection)
+    if useRope(leaderPos) then
+      return
     end
 
-    -- =========================
-    -- FLOOR CHANGE / WALL DETECT
-    -- =========================
-    if targetMissing() and lastKnownPosition then
-        handleFloorChange()
-        WallDetect()
-    end
+    handleUsing()
+  else
+    listenedLeaderPosDir = nil
+    listenedLeaderDir = nil
 
-    -- =========================
-    -- ABRIR PUERTAS
-    -- =========================
-    if target and not targetMissing() and getDistanceBetween(pos(), target:getPosition()) >= 3 then
-        for _, tile in pairs(g_map.getTiles(posz())) do
-            if distanceFromPlayer(tile:getPosition()) == 1 then
-                if table.find(openDoors, tile:getTopUseThing():getId()) then
-                    g_game.use(tile:getTopUseThing())
-                    delay(math.random(500, 800))
-                end
-            end
-        end
-    end
-end)
-
-
-
-followled = addTextEdit("playerToFollow", storage.followLeader or "Leader name", function(widget, text)
-    storage.followLeader = text
-    target = tostring(text)
-end)
-onPlayerPositionChange(function(newPos, oldPos)
-  if followChange:isOff() then return end
-  if (g_game.isFollowing()) then
-    tfollow = g_game.getFollowingCreature()
-    if tfollow then
-      if tfollow:getName() ~= storage.followLeader then
-        followled:setText(tfollow:getName())
-        storage.followLeader = tfollow:getName()
+    local lpos = leader:getPosition()
+    local parameters = {ignoreNonPathable=true, precision=1, ignoreCreatures=true}
+    local path = findPath(player:getPosition(), lpos, 40, parameters)
+    local distance = getDistanceBetween(player:getPosition(), lpos)
+    if distance > 1 and not path then
+      handleUsing()
+    elseif distance > 2 then
+      if getStandTime() > 500 then
+        autoWalk(lpos, 40, parameters)
+        delay(200)
       end
     end
   end
 end)
 
-local followMode = "distance"
+-- Removido o macro BotServerFollow e toda a lógica condicional relacionada
 
-onTalk(function(name, level, mode, text, channelId, pos)
-    if name == storage.followLeader then
-        if text:lower() == "ven" then
-            if followMode == "distance" then
-                followMacro:setOff()
-                AdvancedFollow:setOn()
-                followMode = "aggressive"
-                print("Cambiado a Follow Agresivo")
-            else
-                AdvancedFollow:setOff()
-                followMacro:setOn()
-                followMode = "distance"
-                print("Cambiado a Follow Distancia")
-            end
-        elseif text:lower() == "stop" then
-            followLeader = false
-            floorFollowEnabled = false
-            followMode = "distance"
-            followMacro:setOff()
-            AdvancedFollow:setOff()
-            Autofollow:setOff()
-            print("Follow detenido y macros apagados")
-        elseif text:lower() == "smart" then
-            if not Autofollow.isOn() then
-                Autofollow:setOn()  -- Activar el Follow Inteligente
-                followMacro:setOff()  -- Asegurarse de que el Follow Distancia esté apagado
-                AdvancedFollow:setOff()  -- Asegurarse de que el Follow Agresivo esté apagado
-                print("Activado Follow Inteligente")
+UI.Label("Follow Player:")
+
+UI.TextEdit(storage.followLeader or "Name", function(widget, text)
+  storage.followLeader = text
+  leader = getCreatureByName(text)
+end)
+
+onCreaturePositionChange(function(creature, newPos, oldPos)
+  if ultimateFollow.isOff() then return end
+  
+  if creature:getName() == player:getName() then
+    standTime = now
+  return
+  end
+  
+  if creature:getName():lower() ~= storage.followLeader:lower() then return end
+  
+  if newPos then
+  leaderPositions[newPos.z] = newPos
+  lastLeaderFloor = newPos.z
+  if newPos.z == posz() then
+    leader = creature
+  else
+    leader = nil
+  end
+  else
+  leader = nil
+  end
+  
+  if oldPos then
+  if newPos and oldPos.z ~= newPos.z then
+    leaderDirections[oldPos.z] = creature:getDirection()
+  end
+  
+  local oldTile = g_map.getTile(oldPos)
+  local walkPrecision = 1
+  if oldTile then
+    if not oldTile:hasCreature() then
+      walkPrecision = 0
+    end
+  end    
+  
+  autoWalk(oldPos, 40, {ignoreNonPathable=1, precision=walkPrecision})
+  end
+end)
+
+onCreatureAppear(function(creature)
+  if ultimateFollow.isOff() then return end
+  if creature:getPosition().z ~= posz() then return end
+  
+  if creature:getName():lower() == storage.followLeader:lower() then
+  leader = creature
+  elseif creature:getName() == player:getName() then
+  if lastLeaderFloor and lastLeaderFloor == posz() then
+    leader = getCreatureByName(storage.followLeader)
+  end
+  end
+end)
+
+onCreatureDisappear(function(creature)
+  if ultimateFollow.isOff() then return end
+  if creature:getPosition().z == posz() then return end
+  
+  if creature:getName():lower() == storage.followLeader:lower() then
+  leader = nil
+  elseif creature:getName() == player:getName() and posz() ~= lastLeaderFloor then
+  leader = nil
+  end
+end)
+
+leader = getCreatureByName(storage.followLeader)
+
+---------------------------
+commandLeader = "Player Name"
+---------------------------
+
+commandLeader = commandLeader:lower()
+
+leaderUsePositions = {}
+
+listenedLeaderPosDir = nil
+listenedLeaderDir = nil
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+---- follow need test
+local followts = {
+  leader           = storage.attackLeader or "Sem lider",
+  triggeredPlayer  = g_game.getLocalPlayer():getName(),
+}
+addLabel("texto", "Combo Party"):setColor("#00FFFF")
+
+
+local lastSouleTime = 0
+local souleCooldown = 600000  -- 10 minutos
+
+
+local voc = nil
+
+macro(60000, function()
+    if player then
+     g_game.look(player)
+    end
+
+    onTextMessage(function(mode, text)
+        if not text:find("You see yourself") then return end
+        text = text:lower()
+
+        if text:find("knight") then
+            voc = "[EK]"
+        elseif text:find("paladin") then
+            voc = "[RP]"
+        elseif text:find("sorcerer") then
+            voc = "[MS]"
+        elseif text:find("druid") then
+            voc = "[ED]"
+        elseif text:find("monk") then
+            voc = "[MONK]"
+        end
+    end)
+    -- Removido delay(1000*60*10) pois não deve ser usado aqui
+end)
+
+-- ====================================================================
+-- TARGET ATTACK MACRO (Modificado para usar 'voc' e 'say' para spells)
+local RUNE_ID = 3155
+
+local targetAtkMacro = macro(200, "Target Attack", function()
+    if g_game.isAttacking() then
+        local target = g_game.getAttackingCreature()
+
+        if target then
+            if voc == "[ED]" or voc == "[MS]" then
+                useWith(RUNE_ID, target)
+                delay(200)
+            elseif voc == "[RP]" then
+                say("exori con")
+                delay(500)
+            elseif voc == "[EK]" then
+                say("exori hur")
+                delay(500)
+            elseif voc == "[MONK]" then
+                say("exori med pug")
+                delay(500)
             end
         end
     end
 end)
 
-onCreaturePositionChange(function(creature, newPos, oldPos)
-    if creature:getName() == storage.followLeader and newPos then
-        toFollowPos[newPos.z] = newPos
+targetAtkMacro.setOff()
+
+-- ====================================================================
+-- AREA ATTACK MACRO (AGORA NO SEU PADRÃO EXATO)
+local areaAtkMacro = macro(200, "Area Attack", function()
+    if g_game.isAttacking() then
+        local target = g_game.getAttackingCreature()
+
+        if target then
+            if voc == "[ED]" then
+                say("exevo gran mas frigo")
+                delay(200)
+            elseif voc == "[MS]" then
+            say("exevo gran mas flam")
+            delay(500)
+            elseif voc == "[RP]" then
+                say("exevo mas san")
+                delay(500)
+            elseif voc == "[EK]" then
+                say("exori mas")
+                delay(500)
+            elseif voc == "[MONK]" then
+                say("exori mas nia")
+                delay(500)
+
+                say("exori mas pug")
+                delay(500)
+            end
+        end
     end
 end)
 
-followdist = "disttofollow"
-if not storage[followdist] then
- storage[followdist] = { dist = "3" }
+-- Macro para desativar o Area Attack após 10 minutos (colocado corretamente fora de outros blocos)
+macro(1000 * 60 * 10, function()
+  areaAtkMacro.setOff()
+end)
+-- ====================================================================
+-- GLOBAL VARIABLES (Defined at the very top of your script)
+-- 'player' is assumed to be global or accessible in this context.
+-- 'voc' is the variable that will store the short vocation (e.g., "[EK]", "[RP]").
+local lyzeMacro = macro(200, "Paralyze", function()
+  if g_game.isAttacking() then 
+    local target = g_game.getAttackingCreature()
+    if target then 
+      useWith(3165, target)
+      delay(200) 
+    end
+  end
+end) lyzeMacro.setOff()
+
+-- ====================================================================
+
+
+
+onTalk(function(name, level, mode, text)
+    local leaderName = safeGetLeader()
+    if name:lower() ~= leaderName:lower() then return end
+
+    if text == "!exana" then -- Exana Clean
+      respondToLeader("Executando comando: " .. text)
+    elseif text == "!targetatk" then -- Target Attack on
+      targetAtkMacro.setOn(); lyzeMacro.setOff(); areaAtkMacro.setOff()
+      respondToLeader("Executando comando: " .. text)
+    elseif text == "!paralyze" then -- Paralyze on
+      lyzeMacro.setOn(); targetAtkMacro.setOff(); areaAtkMacro.setOff()
+      respondToLeader("Executando comando: " .. text)
+    elseif text == "!areaatk" then -- Área Attack on
+      areaAtkMacro.setOn(); targetAtkMacro.setOff(); lyzeMacro.setOff()
+      respondToLeader("Executando comando: " .. text)
+    end
+end)
+
+onTalk(function(name, level, mode, text)
+  if name:lower() ~= followts.leader:lower() then return end
+
+  if text == "!cavebot on" then
+    CaveBot.setOn()
+    respondToLeader("Executando comando: " .. text)
+  elseif text == "!cavebot off" then
+    CaveBot.setOff()
+    respondToLeader("Executando comando: " .. text)
+  elseif text == "!target on" then
+    TargetBot.setOn()
+    respondToLeader("Executando comando: " .. text)
+  elseif text == "!target off" then
+    TargetBot.setOff()
+    respondToLeader("Executando comando: " .. text)
+  end
+end)
+
+
+
+
+
+onTalk(function(name, level, mode, text)
+  if name:lower() ~= followts.leader:lower() then return end
+
+  if text:sub(1, 5) == "!say " then
+    local message = text:sub(6)
+    say(message)
+  end
+end)
+
+-- Comandos para controlar os ícones de bloqueio de passagem
+onTalk(function(name, level, mode, text)
+  if name:lower() ~= followts.leader:lower() then return end
+
+  if text == "!nopass on" then
+    -- Procura pelo ícone nopassIcon e ativa
+    for _, widget in ipairs(g_ui.getRootWidget():recursiveGetChildren()) do
+      if widget:getId() == "nopassIcon" then
+        widget:setOn(true)
+        break
+      end
+    end
+    respondToLeader("Executando comando: " .. text)
+  elseif text == "!nopass off" then
+    -- Procura pelo ícone nopassIcon e desativa
+    for _, widget in ipairs(g_ui.getRootWidget():recursiveGetChildren()) do
+      if widget:getId() == "nopassIcon" then
+        widget:setOn(false)
+        break
+      end
+    end
+    respondToLeader("Executando comando: " .. text)
+  elseif text == "!wdoors on" then
+    -- Procura pelo ícone wdoorsIcon e ativa
+    for _, widget in ipairs(g_ui.getRootWidget():recursiveGetChildren()) do
+      if widget:getId() == "wdoorsIcon" then
+        widget:setOn(true)
+        break
+      end
+    end
+    respondToLeader("Executando comando: " .. text)
+  elseif text == "!wdoors off" then
+    -- Procura pelo ícone wdoorsIcon e desativa
+    for _, widget in ipairs(g_ui.getRootWidget():recursiveGetChildren()) do
+      if widget:getId() == "wdoorsIcon" then
+        widget:setOn(false)
+        break
+      end
+    end
+    respondToLeader("Executando comando: " .. text)
+  elseif text == "!wladder on" then
+    -- Procura pelo ícone wladderIcon e ativa
+    for _, widget in ipairs(g_ui.getRootWidget():recursiveGetChildren()) do
+      if widget:getId() == "wladderIcon" then
+        widget:setOn(true)
+        break
+      end
+    end
+    respondToLeader("Executando comando: " .. text)
+  elseif text == "!wladder off" then
+    -- Procura pelo ícone wladderIcon e desactiva
+    for _, widget in ipairs(g_ui.getRootWidget():recursiveGetChildren()) do
+      if widget:getId() == "wladderIcon" then
+        widget:setOn(false)
+        break
+      end
+    end
+    respondToLeader("Executando comando: " .. text)
+  end
+end)
+
+-- Comandos para activar/desactivar Follow
+onTalk(function(name, level, mode, text)
+    if name:lower() ~= followts.leader:lower() then return end
+
+    if text == "!follow on" then -- Activar Follow
+      ultimateFollow.setOn()
+      respondToLeader("Executando comando: " .. text)
+    elseif text == "!follow off" then -- Desactivar Follow
+      ultimateFollow.setOff()
+      respondToLeader("Executando comando: " .. text)
+    end
+end)
+
+
+
+
+onTalk(function(name, level, mode, text)
+    -- Verifica se quem falou é o líder para o comando !off
+    local leaderName = safeGetLeader()
+    
+    if name:lower() ~= leaderName:lower() then 
+      return 
+    end
+
+    if text == "!off" then -- Desactivar todos os macros
+      print("Comando !off executado!")
+      
+      -- Desactiva macros de forma segura
+      safeMacroOff("targetAtkMacro")
+      safeMacroOff("lyzeMacro")
+      safeMacroOff("areaAtkMacro")
+      safeMacroOff("CaveBot")
+      safeMacroOff("TargetBot")
+      safeMacroOff("ultimateFollow")
+      
+      -- Desactiva os ícones de bloqueio de passagem
+      if g_ui and g_ui.getRootWidget then
+        for _, widget in ipairs(g_ui.getRootWidget():recursiveGetChildren()) do
+          if widget:getId() == "nopassIcon" or widget:getId() == "wdoorsIcon" or widget:getId() == "wladderIcon" then
+            widget:setOn(false)
+          end
+        end
+      end
+      
+      respondToLeader("Executando comando: " .. text)
+    end
+end)
+
+
+
+
+
+
+onTalk(function(name, level, mode, text)
+    local leaderName = safeGetLeader()
+    if name:lower() ~= leaderName:lower() then return end
+
+    if text:sub(1, 7) == "!segue " then -- Capturar novo nome para seguir
+      local newLeader = text:sub(8) -- Remove o "!segue " e pega só o nome
+      storage.followLeader = newLeader -- Atualiza o nome no armazenamento
+      respondToLeader("Executando comando: " .. text)
+    end
+end)
+
+
+-- Comando exclusivo para alterar o líder de ataque
+onTalk(function(name, level, mode, text)
+    -- Verifica se quem falou é o líder configurado
+    local leaderName = safeGetLeader()
+    if name:lower() ~= leaderName:lower() then
+        return -- Sai da função se não for o líder
+    end
+
+    -- Lógica para o comando !lider
+    if text:sub(1, 7) == "!lider " then -- Agora ele verifica por "!lider "
+        local newAttackLeader = text:sub(8) -- Pega o nome que vem depois de "!lider "
+        -- 'context' precisa estar acessível globalmente ou definida no seu script.
+        -- Se 'context' não estiver definida, adicione: local context = G.botContext no início do seu script.
+        storage.attackLeader = newAttackLeader
+        respondToLeader("Executando comando: " .. text)
+    end
+end)
+
+
+UI.Separator()
+
+addLabel("texto", "->  COMANDOS DEL LIDER  <-"):setColor("#00FFFF")
+UI.Separator()
+
+-- Sistema de lista de personagens para PMs
+if not storage.pmList then
+  storage.pmList = {}
 end
-UI.Label("Distancia:")
-UI.TextEdit(storage[followdist].dist or "3", function(widget, newText)
-    storage[followdist].dist = newText
+
+-- Configuração do modo de envio de mensagens (true = PM, false = Default)
+if storage.sendMode == nil then
+  storage.sendMode = true -- Padrão: PM
+end
+
+-- Função para enviar PM para todos os personagens da lista
+local function sendPMToAll(message)
+  if not storage.pmList or #storage.pmList == 0 then
+    say(message) -- Se não há lista, envia no chat normal
+    return
+  end
+  
+  -- Verifica o modo de envio configurado
+  if storage.sendMode then
+    -- Modo PM: Envia mensagem privada para cada MC da lista
+    local delay = 0
+    local delayBetweenMessages = 500 -- 0.5 segundos entre mensagens
+    
+    for _, playerName in ipairs(storage.pmList) do
+      if playerName and playerName ~= "" then
+        schedule(delay, function() 
+          talkPrivate(playerName, message)
+        end)
+        delay = delay + delayBetweenMessages
+      end
+    end
+  else
+    -- Modo Default: Envia mensagem no chat público
+    say(message)
+  end
+end
+
+
+
+-- Interface para gerenciar a lista de PMs
+addLabel("pmListLabel", "Lista de MCs:"):setColor("#00FF00")
+
+-- Botão para abrir o editor multiline
+local managePMButton = UI.Button("Editar Lista de MCs", function()
+  UI.MultilineEditorWindow(storage.nomeAmigo or "", {
+    title="Lista de Personajes para MCs", 
+    description="Ingrese en cada linea el nombre del jugador:\n(Presione ENTER para saltar una linea)"
+  }, function(text)
+    storage.nomeAmigo = text
+    -- Converte o texto em lista de nomes
+    local lines = {}
+    for line in text:gmatch("[^\r\n]+") do
+      line = line:trim()
+      if line ~= "" then
+        table.insert(lines, line)
+      end
+    end
+    storage.pmList = lines
+  end)
 end)
 
-UI.Label("delay pasos")
+managePMButton:setColor("#00FFFF")
 
-UI.TextEdit(storage.delayf or "100", function(widget, newText)
-    storage.delayf = newText
+-- Botão para limpar a lista
+local clearPMButton = UI.Button("Limpiar Lista PM", function()
+  storage.pmList = {}
+  storage.nomeAmigo = ""
+  -- Removido o say para não poluir o chat
 end)
 
-followMacro = macro(20, "Follow Distancia", function()
-if AdvancedFollow.isOn() then AdvancedFollow.setOff() end
-    local target = getCreatureByName(storage.followLeader)
-    local pPos = player:getPosition()
-    if target then
-        local tpos = target:getPosition()
-        toFollowPos[tpos.z] = tpos
+clearPMButton:setColor("red")
+
+-- Botão para testar a lista atual
+local testPMButton = UI.Button("Probar MCs Actuales", function()
+  if not storage.pmList or #storage.pmList == 0 then
+    say("Lista de MCs vacia! Use 'Editar Lista de MCs' para agregar nombres.")
+  else
+    sendPMToAll("Prueba de PM - Bot funcionando!")
+    -- Removido o say para não poluir o chat
+  end
+end)
+
+testPMButton:setColor("green")
+
+-- Botão para alternar modo de envio (PM/Default)
+local toggleModeButton = UI.Button("", function()
+  storage.sendMode = not storage.sendMode
+end)
+
+-- Função para atualizar o texto do botão baseado no modo atual
+local function updateModeButtonText()
+  if storage.sendMode then
+    toggleModeButton:setText("Modo: PM")
+    toggleModeButton:setColor("blue")
+  else
+    toggleModeButton:setText("Modo: Default")
+    toggleModeButton:setColor("orange")
+  end
+end
+
+-- Inicializa o texto do botão
+updateModeButtonText()
+
+-- Macro para atualizar o botão continuamente
+macro(100, function()
+  updateModeButtonText()
+end)
+
+UI.Separator()
+
+-- Box para comandos manuais
+addLabel("comandoManual", "Comando Manual:"):setColor("#00FF00")
+
+local comandoManualText = UI.TextEdit("", function(widget, text)
+  -- Armazena o comando digitado
+  storage.comandoManual = text
+end)
+
+-- Botão para enviar o comando manual
+local enviarComandoButton = UI.Button("Enviar Comando", function()
+  local comando = storage.comandoManual or ""
+  if comando and comando ~= "" then
+    sendPMToAll(comando)
+    -- Limpia o box após enviar
+    comandoManualText:setText("")
+    storage.comandoManual = ""
+  else
+    say("Digite un comando primero!")
+  end
+end)
+
+enviarComandoButton:setColor("green")
+
+UI.Separator()
+
+addLabel("gotoHotkeyLabel", "Tecla para GOTO:")
+if not storage.gotoHotkey then
+  storage.gotoHotkey = "F"
+end
+local gotoHotkey = UI.createWidget('BotTextEdit')
+gotoHotkey:setText(storage.gotoHotkey)
+gotoHotkey.onTextChange = function(widget, text)
+  storage.gotoHotkey = text:upper()
+end
+-- Adiciona um label que exibe o nome do líder
+-- Texto separado: prefixo fixo + nome animado
+local LIDER_PREFIXO = "Lider: "
+local NOME_LIDER = safeGetLeader() or "Sem lider"
+local TEXTO_LIDER = LIDER_PREFIXO .. NOME_LIDER
+
+local LABEL_ID = "leaderLabel"
+local FONT_NAME = "verdana-11px-rounded"
+
+-- Cores
+local COR_FUNDO = "#000000"
+local COR_PREENCHIMENTO = "#00FF00"
+local CORES_PISCADA = {
+ "#FF0000", "#FFFFFF", "#00FFFF"
+}
+
+-- Temporização
+local MACRO_DELAY = 100
+local PISCADA_DURACAO_MS = 3000
+local PISCADA_TROCA_COR_MS = 300
+local PISCADA_ALTERNANCIA_MS = 100
+
+-- Estado de animação
+local label = addLabel(LABEL_ID, function() return true end)
+label:setFont(FONT_NAME)
+
+local transitionPoint = -1
+local isFilling = true
+local piscadaActive = false
+local piscadaTimer = 0
+local piscadaColorIndex = 1
+
+local function resetLiderLabel()
+  isFilling = true
+  transitionPoint = -1
+  piscadaActive = false
+  piscadaTimer = 0
+  piscadaColorIndex = 1
+end
+
+-- Macro animado
+macro(MACRO_DELAY, function()
+  local partes = {}
+  local lenPrefixo = #LIDER_PREFIXO
+  local lenTotal = #TEXTO_LIDER
+
+  if not isFilling and transitionPoint < 0 and not piscadaActive then
+    piscadaActive = true
+    piscadaTimer = 0
+    piscadaColorIndex = 1
+  end
+
+  for i = 1, lenTotal do
+    local char = TEXTO_LIDER:sub(i, i)
+    local corAtual = COR_FUNDO
+
+    if i <= lenPrefixo then
+      corAtual = COR_PREENCHIMENTO -- “Líder:” fixo com preenchimento sempre
+    else
+      if piscadaActive then
+        if (piscadaTimer % (2 * PISCADA_ALTERNANCIA_MS)) < PISCADA_ALTERNANCIA_MS then
+          corAtual = CORES_PISCADA[piscadaColorIndex]
+        else
+          corAtual = COR_FUNDO
+        end
+      else
+        local nomeIndex = i - lenPrefixo
+        corAtual = isFilling and (nomeIndex <= transitionPoint) and COR_PREENCHIMENTO or
+                   not isFilling and (nomeIndex > transitionPoint) and COR_PREENCHIMENTO or COR_FUNDO
+      end
     end
-    if player:isWalking() then
-        return
+
+    table.insert(partes, char)
+    table.insert(partes, corAtual)
+  end
+
+  label:setColoredText(partes)
+
+  if not piscadaActive then
+    if isFilling then
+      transitionPoint = transitionPoint + 1
+      if transitionPoint > (#NOME_LIDER) then
+        isFilling = false
+        transitionPoint = #NOME_LIDER
+      end
+    else
+      transitionPoint = transitionPoint - 1
     end
-    local p = toFollowPos[posz()]
-    if not p then
-        return
+  else
+    piscadaTimer = piscadaTimer + MACRO_DELAY
+
+    if piscadaTimer % PISCADA_TROCA_COR_MS == 0 then
+      piscadaColorIndex = piscadaColorIndex + 1
+      if piscadaColorIndex > #CORES_PISCADA then
+        piscadaColorIndex = 1
+      end
     end
-    if autoWalk(p, 20, {ignoreNonPathable=true, precision=1, marginMin=tonumber(storage[followdist].dist), marginMax=tonumber(storage[followdist].dist)}) then
-        delay(tonumber(storage.delayf))
+
+    if piscadaTimer >= PISCADA_DURACAO_MS then
+      resetLiderLabel()
     end
- end)
+  end
+end)UI.Separator()
+
+-- Estados dos botones
+local estadoCaveBot = false
+local estadoTarget = false
+local estadoFollow = false
+
+-- Criar botão
+local botaoCaveBot = UI.Button("CaveBot ON/OFF", function()
+  if estadoCaveBot then
+    sendPMToAll("!cavebot off") -- Envia PM para todos
+    estadoCaveBot = false
+  
+  else
+    sendPMToAll("!cavebot on") -- Envia PM para todos
+    estadoCaveBot = true
+   
+  end
+end)
+
+botaoCaveBot:setImageColor("black") -- Define el color de la imagen del boton
+botaoCaveBot:setColor("yellow") -- Comienza con el color rojo (OFF)
+
+-- Criar botão
+local botaoTarget = UI.Button("Target ON/OFF", function()
+  if estadoTarget then
+    sendPMToAll("!target off") -- Envia PM para todos
+    estadoTarget = false
+  else
+    sendPMToAll("!target on") -- Envia PM para todos
+    estadoTarget = true
+   
+  end
+end)
+
+botaoTarget:setImageColor("black") -- 
+botaoTarget:setColor("yellow") -- 
+
+-- Criar botão
+local botaoFollow = UI.Button("Follow ON/OFF", function()
+  if estadoFollow then
+    sendPMToAll("!follow off") -- Envia PM para todos
+    estadoFollow = false
+  else
+    sendPMToAll("!follow on") -- Envia PM para todos
+    estadoFollow = true
+   
+  end
+end)
+
+botaoFollow:setImageColor("black") -- 
+botaoFollow:setColor("yellow") -- 
+
+
+addLabel("texto", "->  ATAQUES  <-"):setColor("#DFFF00")
+UI.Separator()
+
+local botaoOi = UI.Button("TargeATK", function()
+  sendPMToAll("!targetatk") -- Envia PM para todos
+end)
+
+botaoOi:setImageColor("black")
+botaoOi:setColor("yellow")
+
+local botaoOi = UI.Button("Paralyze", function()
+  sendPMToAll("!paralyze")
+end)
+
+botaoOi:setImageColor("black")
+botaoOi:setColor("yellow")
+
+
+local botaoOi = UI.Button("AreaATK", function()
+  sendPMToAll("!areaatk") -- Envia PM para todos
+end)
+
+botaoOi:setImageColor("black")
+botaoOi:setColor("yellow")
+UI.Separator()
+
+addLabel("texto", "->  Apagar Mcs  <-"):setColor("#DFFF00")
+UI.Separator()
+
+local botaoOi = UI.Button("OFF", function()
+  sendPMToAll("!off") -- Envia PM para todos
+end)
+
+botaoOi:setImageColor("black")
+botaoOi:setColor("yellow")
+
+UI.Separator()
+
+local labelMacroHelp = UI.Label("Comandos Macro en Server Log")
+labelMacroHelp:setColor("#FFFF00") -- Define a cor do texto para amarelo
+
+  local btMacroHelp = UI.Button("Comandos del Macro", function()
+  local text = [[
+  Follow MC System
+
+Sistema de MCs:
+Haga clic en "Editar Lista de MCs" para adicionar nombres.
+Escriba un nombre por linea.
+Los comandos seran enviados via PM a la lista.
+Use "Probar MCs Atuais" para verificar la comunicacion.
+Use "Comando Manual" para enviar comandos personalizados.
+
+Comandos de activacion/desactivacion de funcionalidades
+- !target on/off — Activa/Desactiva el TargetBot.
+- !cavebot on/off — Activa/Desactiva el Cavebot.
+- !follow on/off — Activa/Desactiva el Follow.
+
+Comandos de ataques
+- !targetatk — Activa ataque con Target ATK.
+- !paralyze — Activa ataque con la runa Paralyze (ID 3165).
+- !uespell — Activa ataque con a magia "exevo gran mas frigo".
+
+Comandos de comunicacion
+- !say [mensagem] — Hace que el personaje diga el mensaje en el chat Default.
+- !segue [nome] — Cambiar el personaje que los MCs siguen
+- !lider [nome] — Cambia el lider de ataque.
+
+Comando global
+- !off — Desactiva todos los macros activos.
+]]
+
+  local speakType = {color = "#FFFF00", backgroundColor = "#000000"} -- Texto amarillo, fondo negro
+  local tab = modules.game_console.getTab("Server Log")
+  local creatureName = player:getName()
+  modules.game_console.addTabText(text, speakType, tab, creatureName)
+end)
+
+btMacroHelp:setColor("#FFFF00") -- Define el color del texto a amarillo
+btMacroHelp:setBackgroundColor("#000000") -- Define el color del fondo a negro
+
+
+
+
+
+----PVP MACROS----
+
+-- Sistema de captura de coordenadas
+local function captureAndSendCoordinate()
+  if not storage.pmList or #storage.pmList == 0 then
+    print("Ningun MC en la lista. Agregue MCs para usar esta funcion.")
+    return
+  end
+
+  local tile = getTileUnderCursor()
+  if not tile then 
+    print("Coloque el mouse sobre un tile!")
+    return 
+  end
+  
+  local pos = tile:getPosition()
+  local coord = string.format("!goto %d,%d,%d", pos.x, pos.y, pos.z)
+  
+  -- Marca visualmente o tile
+  tile:setText("GOAL", "green")
+  
+  -- Envia para todos los MCs
+  sendPMToAll(coord)
+  
+  print("Coordenada capturada y enviada para MCs!")
+  
+  -- Remove a marcacion despues de 3 segundos
+  schedule(3000, function()
+    if tile and tile:getText() == "GOAL" then
+      tile:setText("")
+    end
+  end)
+end
+
+-- Hotkey para capturar y enviar coordenada
+onKeyDown(function(keys)
+  if keys:upper() == gotoHotkey:getText():upper() then
+    captureAndSendCoordinate()
+  end
+end)
+
+-- Comando para que los MCs vayan a la coordenada
+onTalk(function(name, level, mode, text)
+    if name:lower() ~= safeGetLeader():lower() then return end
+
+    if text:sub(1, 6) == "!goto " then
+        local coords = text:sub(7)
+        local x, y, z = coords:match("(%d+),(%d+),(%d+)")
+        if x and y and z then
+            local targetPos = {x = tonumber(x), y = tonumber(y), z = tonumber(z)}
+            -- Activa navegacion automatica
+            autoWalk(targetPos, 100, {ignoreNonPathable=true, precision=1})
+            respondToLeader("Comando goto recibido: " .. text)
+        end
+    end
 end)
