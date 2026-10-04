@@ -139,7 +139,7 @@ checkAndLoad(function()
 
 
 
-setDefaultTab("NAVI")
+setDefaultTab("Tools")
 
 -- "Protecciones de seguridad para la ofuscacion
 local function safeGetLeader()
